@@ -13,9 +13,13 @@ matplotlib = "*"
 jupyterlab = "^3.0"
 Pillow = "^8.4.0"
 numpy = "*"
+tqdm = "*"
+python-dotenv="*"
 
 [tool.poetry.dev-dependencies]
+pytest = "*"
 black = "^21.12b0"
+blackcellmagic = "*"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
