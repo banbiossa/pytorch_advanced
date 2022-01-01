@@ -5,7 +5,7 @@ description = "For the pytorch deeplearning book"
 authors = ["Shota Shimizu <shota_shimizu@caddi.jp>"]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.7"
 torch = "*"
 torchvision = "*" 
 torchaudio = "*"
@@ -18,7 +18,7 @@ python-dotenv="*"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"
-black = "^21.12b0"
+black = "*"
 blackcellmagic = "*"
 
 [build-system]
