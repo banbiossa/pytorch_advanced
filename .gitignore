@@ -1,3 +1,23 @@
 .python-version
 **/__pycache__/**
 .idea
+.env
+
+# from jupyter
+.bash_history
+.cache/
+.config/
+.docker/
+.ipython/
+.jupyter/
+.local/
+.npm/
+.ssh/
+.viminfo
+src/
+tutorials/
+.java
+.bashrc
+.poetry
+.zshrc
+.gnupg
