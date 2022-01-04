@@ -1,5 +1,6 @@
 .python-version
 **/__pycache__/**
+**/**/.ipynb_checkpoints/**
 .idea
 .env
 
@@ -21,3 +22,5 @@ tutorials/
 .poetry
 .zshrc
 .gnupg
+.conda
+.python_history

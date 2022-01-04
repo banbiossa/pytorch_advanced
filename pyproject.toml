@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytorch_advanced"
-version = "0.1.0"
+version = "0.1.1"
 description = "For the pytorch deeplearning book"
 authors = ["Shota Shimizu <shota_shimizu@caddi.jp>"]
 
