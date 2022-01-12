@@ -31,7 +31,7 @@ def make_data_path_list(rootpath: Path):
         return rootpath / "JPEGImages" / f"{x}.jpg"
 
     def anno_path(x):
-        return rootpath / "Annotation" / f"{x}.xml"
+        return rootpath / "Annotations" / f"{x}.xml"
 
     # train/test file ids
     train_id_names = rootpath / "ImageSets" / "Main" / "train.txt"
@@ -68,26 +68,35 @@ class AnnoXML2List:
         """
         ret = []
         xml = ET.parse(xml_path).getroot()
-        for obj in xml.iter('object'):
-            difficult = int(obj.find('difficult').text)
+        for obj in xml.iter("object"):
+            difficult = int(obj.find("difficult").text)
             if difficult == 1:
                 continue
-            bndbox = []
-            name = obj.find('name').text.lower().strip()
-            bbox = obj.find("bbox")
-            pts = ['xmin', 'ymin', 'xmax', 'ymax']
+            bbox_list = []
+            name = obj.find("name").text.lower().strip()
+            bndbox = obj.find("bndbox")
+            pts = ["xmin", "ymin", "xmax", "ymax"]
             for pt in pts:
-                cur_pixel = int(bbox.find(pt).text - 1)
-                if pt in ('xmin', 'xmax'):
+                cur_pixel = int(bndbox.find(pt).text) - 1
+                if pt in ("xmin", "xmax"):
                     cur_pixel /= width
                 else:
                     cur_pixel /= height
-                bndbox.append(cur_pixel)
+                bbox_list.append(cur_pixel)
+
+            # アノテーションのクラス名のindexを取得して追加
+            label_idx = self.classes.index(name)
+            bbox_list.append(label_idx)
+
+            # res in [xmin, ...] を足す
+            ret += [bbox_list]
+
+        return np.array(ret)
 
 
 def test_order():
-    actual = make_order(['one', 'two'], ['three', 'four'])
-    expected = [('one', 'three')]
+    actual = make_order(["one", "two"], ["three", "four"])
+    expected = [("one", "three")]
     assert actual[0] == expected[0]
 
 
