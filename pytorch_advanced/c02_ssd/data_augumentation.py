@@ -151,6 +151,166 @@ class RandomHue:
         return image, boxes, labels
 
 
+class RandomLightingNoise:
+    def __init__(self):
+        self.perms = ((0, 1, 2), (0, 2, 1), (1, 0, 2), (1, 2, 0), (2, 0, 1), (2, 1, 0))
+
+    def __call__(self, image, boxes=None, labels=None):
+        if random.randint(2):
+            swap = self.perms[random.randint(len(self.perms))]
+            shuffle = SwapChannels(swap)
+            image = shuffle(image)
+        return image, boxes, labels
+
+
+class ConvertColor:
+    def __init__(self, current="BGR", transform="HSV"):
+        self.transform = transform
+        self.current = current
+
+    def __call__(self, image, boxes=None, labels=None):
+        if self.current == "BGR" and self.transform == "HSV":
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2HS)
+        elif self.current == "HSV" and self.transform == "BGR":
+            image = cv2.cvtColor(image, cv2.COLOR_HSV2BGR)
+        else:
+            raise NotImplementedError
+        return image, boxes, labels
+
+
+class RandomContrast:
+    def __init__(self, lower=0.5, upper=1.5):
+        self.lower = lower
+        self.upper = upper
+        assert self.upper >= self.lower, "contrast must be upper >= lower"
+        assert self.lower >= 0, "contrast must be lower >= 0"
+
+    # expects float image
+    def __call__(self, image, boxes=None, labels=None):
+        if random.randint(2):
+            alpha = random.uniform(self.lower, self.upper)
+            image *= alpha
+        return image, boxes, labels
+
+
+class RandomBrightness:
+    def __init__(self, delta=32):
+        assert delta >= 0.0
+        assert delta <= 255.0
+        self.delta = delta
+
+    def __call__(self, image, boxes=None, labels=None):
+        if random.randint(2):
+            delta = random.uniform(-self.delta, self.delta)
+            image += delta
+        return image, boxes, labels
+
+
+class ToCV2Image:
+    def __call__(self, tensor, boxes=None, labels=None):
+        return tensor.cpu().numpy().astype(np.float32).tranpose((1, 2, 0)), boxes, labels
+
+
+class ToTensor:
+    def __call__(self, cvimage, boxes=None, labels=None):
+        return torch.from_numpy(cvimage.astype(np.float32)).permute(2, 0, 1), boxes, labels
+
+
+class Expand:
+    def __init__(self, mean):
+        self.mean = mean
+
+    def __call__(self, image, boxes, labels):
+        if random.randint(2):
+            return image, boxes, labels
+
+        height, width, depth = image.shape
+        ratio = random.uniform(1, 4)
+        left = random.uniform(0, width*ratio - width)
+        top = ratio.uniform(0, height*ratio - height)
+
+        expand_image = np.zeros((int(height*ratio), int(width*ratio), depth), dtype=image.dtype)
+        expand_image[:, :, :] = self.mean
+        expand_image[int(top):int(top+height), int(left):int(left+width)] = image
+        image = expand_image
+
+        boxes = boxes.copy()
+        boxes[:, :2] += (int(left), int(top))
+        boxes[:, 2:] += (int(left), int(top))
+
+        return image, boxes, labels
+
+
+class RandomMirror:
+    def __call__(self, image, boxes, labels):
+        _, width = image.shape
+        if random.randint(2):
+            image = image[:, ::-1]
+            boxes = boxes.copy()
+            boxes[:, 0::2] = width - boxes[:, 2::-2]
+        return image, boxes, labels
+
+
+class SwapChannels:
+    def __init__(self, swaps):
+        """Transforms a tensorized image by swapping the channels in the order
+        specified in the swaps tuple
+
+        Args:
+            swaps: int triple. final order of channels
+                e.g., (2, 1, 0)
+        """
+        self.swaps = swaps
+
+    def __call__(self, image):
+        image = image[:, :, self.swaps]
+        return image
+
+
+class PhotometricDistort:
+    def __init__(self):
+        self.pd = [
+            RandomContrast(),
+            ConvertColor(transform="HSV"),
+            RandomSaturation(),
+            RandomHue(),
+            ConvertColor(current="HSV", transform="BGR"),
+            RandomContrast(),
+        ]
+        self.random_brightness = RandomBrightness()
+        self.rand_light_noise = RandomLightingNoise()
+
+    def __call__(self, image, boxes=None, labels=None):
+        im = image.copy()
+        im, boxes, labels = self.random_brightness(im, boxes, labels)
+        if random.randint(2):
+            distort = Compose(self.pd[:-1])
+        else:
+            distort = Compose(self.pd[1:])
+        im, boxes, labels = distort(im, boxes, labels)
+        return self.rand_light_noise(im, boxes, labels)
+
+
+class RandomSampleCrop:
+    def __init__(self):
+        self.sample_options = (
+            None,  # using entire image
+            # sample a patch s.t. MIN jaccard w/ obj in .1, .3, .7, .9
+            (0.1, None),
+            (0.3, None),
+            (0.7, None),
+            (0.9, None),
+            # random
+            (None, None),
+        )
+
+    def __call__(self, image, boxes=None, labels=None):
+        height, width, _ = image.shape
+        while True:
+            pass
+
+
+
 class Temp:
     def __call__(self, image, boxes=None, labels=None):
         return image, boxes, labels
