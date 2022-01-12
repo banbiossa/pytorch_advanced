@@ -208,12 +208,20 @@ class RandomBrightness:
 
 class ToCV2Image:
     def __call__(self, tensor, boxes=None, labels=None):
-        return tensor.cpu().numpy().astype(np.float32).tranpose((1, 2, 0)), boxes, labels
+        return (
+            tensor.cpu().numpy().astype(np.float32).tranpose((1, 2, 0)),
+            boxes,
+            labels,
+        )
 
 
 class ToTensor:
     def __call__(self, cvimage, boxes=None, labels=None):
-        return torch.from_numpy(cvimage.astype(np.float32)).permute(2, 0, 1), boxes, labels
+        return (
+            torch.from_numpy(cvimage.astype(np.float32)).permute(2, 0, 1),
+            boxes,
+            labels,
+        )
 
 
 class Expand:
@@ -226,12 +234,16 @@ class Expand:
 
         height, width, depth = image.shape
         ratio = random.uniform(1, 4)
-        left = random.uniform(0, width*ratio - width)
-        top = ratio.uniform(0, height*ratio - height)
+        left = random.uniform(0, width * ratio - width)
+        top = ratio.uniform(0, height * ratio - height)
 
-        expand_image = np.zeros((int(height*ratio), int(width*ratio), depth), dtype=image.dtype)
+        expand_image = np.zeros(
+            (int(height * ratio), int(width * ratio), depth), dtype=image.dtype
+        )
         expand_image[:, :, :] = self.mean
-        expand_image[int(top):int(top+height), int(left):int(left+width)] = image
+        expand_image[
+            int(top) : int(top + height), int(left) : int(left + width)
+        ] = image
         image = expand_image
 
         boxes = boxes.copy()
@@ -307,8 +319,72 @@ class RandomSampleCrop:
     def __call__(self, image, boxes=None, labels=None):
         height, width, _ = image.shape
         while True:
-            pass
+            # random choose a mode
+            mode = random.choice(self.sample_options)
+            if mode is None:
+                return image, boxes, labels
 
+            min_iou, max_iou = mode
+            if min_iou is None:
+                min_iou = float("-inf")
+            if max_iou is None:
+                max_iou = float("inf")
+
+            # max trials (50)
+            for _ in range(50):
+                current_image = image
+
+                w = random.uniform(0.3 * width, width)
+                h = random.uniform(0.3 * height, height)
+
+                # aspect ratio constant b/t .5 & 2
+                if h / w < 0.5 or h / w > 2:
+                    continue
+                left = random.uniform(width - w)
+                top = random.uniform(height - h)
+
+                # convert to integer rect
+                rect = np.array([int(left), int(top), int(left + w), int(top + h)])
+
+                # calculate IoU (jaccard overlap) b/t the cropped and gt boxes
+                overlap = jaccard_numpy(boxes, rect)
+
+                # is min and max overlap constraint satisfied? if not try again
+                if overlap.min() < min_iou and max_iou < overlap.max():
+                    continue
+
+                # cut the crop from the image
+                current_image = current_image[rect[1] : rect[3], rect[0] : rect[2], :]
+
+                # keep the overlap with gt box IF center in sampled patch
+                centers = (boxes[:, :2] + boxes[:, 2:]) / 2.0
+
+                # mask in all gt boxes that under and to the left of centers
+                mask_1 = (rect[0] < centers[:, 0]) * (rect[1] < centers[:, 1])
+
+                # mask in all gt boxes that under and to the right of centers
+                mask_2 = (rect[2] > centers[:, 0]) * (rect[3] > centers[:, 1])
+
+                # mask in both are true
+                mask = mask_1 * mask_2
+
+                # have any valid boxes? try again if not
+                if not mask.any():
+                    continue
+
+                # take only matching gt boxes
+                current_boxes = boxes[mask, :].copy()
+
+                # take only matching gt labels
+                current_labels = labels[mask]
+
+                # should we use the box left and top corner of the crop's
+                current_boxes[:, :2] = np.maximum(current_boxes[:, :2], rect[:2])
+
+                # adjust to crop (by subtracting crop's left, too)
+                current_boxes[:, :2] -= rect[:2]
+
+                return current_image, current_boxes, current_labels
 
 
 class Temp:
