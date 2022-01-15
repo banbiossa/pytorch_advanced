@@ -142,6 +142,7 @@ class RandomSaturation:
 class RandomHue:
     def __init__(self, delta=18.0):
         assert 0.0 <= delta <= 360.0
+        self.delta = delta
 
     def __call__(self, image, boxes=None, labels=None):
         if random.randint(2):
@@ -170,7 +171,7 @@ class ConvertColor:
 
     def __call__(self, image, boxes=None, labels=None):
         if self.current == "BGR" and self.transform == "HSV":
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2HS)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         elif self.current == "HSV" and self.transform == "BGR":
             image = cv2.cvtColor(image, cv2.COLOR_HSV2BGR)
         else:
@@ -235,7 +236,7 @@ class Expand:
         height, width, depth = image.shape
         ratio = random.uniform(1, 4)
         left = random.uniform(0, width * ratio - width)
-        top = ratio.uniform(0, height * ratio - height)
+        top = random.uniform(0, height * ratio - height)
 
         expand_image = np.zeros(
             (int(height * ratio), int(width * ratio), depth), dtype=image.dtype
@@ -255,7 +256,7 @@ class Expand:
 
 class RandomMirror:
     def __call__(self, image, boxes, labels):
-        _, width = image.shape
+        _, width, _ = image.shape
         if random.randint(2):
             image = image[:, ::-1]
             boxes = boxes.copy()
