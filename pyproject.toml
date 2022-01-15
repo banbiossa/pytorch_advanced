@@ -16,6 +16,7 @@ numpy = "*"
 tqdm = "*"
 python-dotenv="*"
 opencv-python = "*"
+pandas = "*"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"
