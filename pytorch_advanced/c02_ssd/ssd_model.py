@@ -548,7 +548,7 @@ class SSD(nn.Module):
         if self.phase == "inference":
             return self.detect(*output)
         else:
-            return output
+            return output  # loc, conf, dbox_list
 
 
 def decode(loc, dbox_list):
