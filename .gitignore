@@ -24,3 +24,6 @@ tutorials/
 .gnupg
 .conda
 .python_history
+.gsutil
+**/**/data/annotations
+**/**/data/images

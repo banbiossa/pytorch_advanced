@@ -630,7 +630,8 @@ def nm_suppression(boxes, scores, overlap=0.45, top_k=200):
 # SSDの推論時にconfとlocの出力から、被りを除去したBBoxを出力する
 
 
-class Detect(Function):
+# class Detect(Function):
+class Detect:
 
     def __init__(self, conf_thresh=0.01, top_k=200, nms_thresh=0.45):
         self.softmax = nn.Softmax(dim=-1)  # confをソフトマックス関数で正規化するために用意
@@ -638,7 +639,7 @@ class Detect(Function):
         self.top_k = top_k  # nm_supressionでconfの高いtop_k個を計算に使用する, top_k = 200
         self.nms_thresh = nms_thresh  # nm_supressionでIOUがnms_thresh=0.45より大きいと、同一物体へのBBoxとみなす
 
-    def forward(self, loc_data, conf_data, dbox_list):
+    def __call__(self, loc_data, conf_data, dbox_list):
         """
         順伝搬の計算を実行する。
 
@@ -806,7 +807,8 @@ class SSD(nn.Module):
         if self.phase == "inference":  # 推論時
             # クラス「Detect」のforwardを実行
             # 返り値のサイズは torch.Size([batch_num, 21, 200, 5])
-            return self.detect(output[0], output[1], output[2])
+            with torch.no_grad():
+                return self.detect(output[0], output[1], output[2])
 
         else:  # 学習時
             return output
