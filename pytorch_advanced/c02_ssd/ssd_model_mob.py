@@ -162,7 +162,7 @@ def voc_from_anocci_json(
 ) -> np.ndarray:
     """allow kwargs"""
     anocci = anocci_from_json(json_path)
-    object_view_label = 1
+    object_view_label = 0
     width, height = anocci.image_dimensions
     if normalize:
         object_views = list(
