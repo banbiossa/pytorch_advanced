@@ -37,7 +37,7 @@ random.seed(1234)
 
 def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    logger.info("使用デバイス：", device)
+    logger.info("使用デバイス：%s", device)
 
     # ファイルパスのリストを取得
     (
@@ -129,7 +129,7 @@ def main():
 
     # GPUが使えるかを確認
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    logger.info("使用デバイス：", device)
+    logger.info("使用デバイス： %s", device)
 
     logger.info("ネットワーク設定完了：学習済みの重みをロードしました")
 
@@ -141,7 +141,7 @@ def main():
 
     # 学習・検証を実行する
     num_epochs = 50
-    all_locals = train_model(
+    train_model(
         net, dataloaders_dict_menzu, criterion, optimizer, num_epochs=num_epochs
     )
 
@@ -164,75 +164,74 @@ def train_model(net, dataloaders_dict, criterion, optimizer, num_epochs):
     logs = []
 
     # epochのループ
-    try:
-        for epoch in range(num_epochs + 1):
+    for epoch in range(num_epochs + 1):
 
-            # 開始時刻を保存
-            t_epoch_start = time.time()
-            t_iter_start = time.time()
+        # 開始時刻を保存
+        t_epoch_start = time.time()
+        t_iter_start = time.time()
 
-            print("-------------")
-            print("Epoch {}/{}".format(epoch + 1, num_epochs))
-            print("-------------")
+        print("-------------")
+        print("Epoch {}/{}".format(epoch + 1, num_epochs))
+        print("-------------")
 
-            # epochごとの訓練と検証のループ
-            for phase in ["train", "val"]:
-                if phase == "train":
-                    net.train()  # モデルを訓練モードに
-                    print("（train）")
+        # epochごとの訓練と検証のループ
+        for phase in ["train", "val"]:
+            if phase == "train":
+                net.train()  # モデルを訓練モードに
+                print("（train）")
+            else:
+                if (epoch + 1) % 10 == 0:
+                    net.eval()  # モデルを検証モードに
+                    print("-------------")
+                    print("（val）")
                 else:
-                    if (epoch + 1) % 10 == 0:
-                        net.eval()  # モデルを検証モードに
-                        print("-------------")
-                        print("（val）")
-                    else:
-                        # 検証は10回に1回だけ行う
-                        continue
+                    # 検証は10回に1回だけ行う
+                    continue
 
-                # データローダーからminibatchずつ取り出すループ
-                for images, targets in dataloaders_dict[phase]:
+            # データローダーからminibatchずつ取り出すループ
+            for images, targets in dataloaders_dict[phase]:
 
-                    # GPUが使えるならGPUにデータを送る
-                    images = images.to(device)
-                    targets = [ann.to(device) for ann in targets]  # リストの各要素のテンソルをGPUへ
+                # GPUが使えるならGPUにデータを送る
+                images = images.to(device)
+                targets = [ann.to(device) for ann in targets]  # リストの各要素のテンソルをGPUへ
 
-                    # optimizerを初期化
-                    optimizer.zero_grad()
+                # optimizerを初期化
+                optimizer.zero_grad()
 
+                # 順伝搬（forward）計算
+                with torch.set_grad_enabled(phase == "train"):
                     # 順伝搬（forward）計算
-                    with torch.set_grad_enabled(phase == "train"):
-                        # 順伝搬（forward）計算
-                        outputs = net(images)
+                    outputs = net(images)
 
-                        # 損失の計算
-                        loss_l, loss_c = criterion(outputs, targets)
-                        loss = loss_l + loss_c
+                    # 損失の計算
+                    loss_l, loss_c = criterion(outputs, targets)
+                    loss = loss_l + loss_c
 
-                        # 訓練時はバックプロパゲーション
-                        if phase == "train":
-                            loss.backward()  # 勾配の計算
+                    # 訓練時はバックプロパゲーション
+                    if phase == "train":
+                        loss.backward()  # 勾配の計算
 
-                            # 勾配が大きくなりすぎると計算が不安定になるので、clipで最大でも勾配2.0に留める
-                            nn.utils.clip_grad_value_(net.parameters(), clip_value=2.0)
+                        # 勾配が大きくなりすぎると計算が不安定になるので、clipで最大でも勾配2.0に留める
+                        nn.utils.clip_grad_value_(net.parameters(), clip_value=2.0)
 
-                            optimizer.step()  # パラメータ更新
+                        optimizer.step()  # パラメータ更新
 
-                            if iteration % 10 == 0:  # 10iterに1度、lossを表示
-                                t_iter_finish = time.time()
-                                duration = t_iter_finish - t_iter_start
-                                print(
-                                    "イテレーション {} || Loss: {:.4f} || 10iter: {:.4f} sec.".format(
-                                        iteration, loss.item(), duration
-                                    )
+                        if iteration % 10 == 0:  # 10iterに1度、lossを表示
+                            t_iter_finish = time.time()
+                            duration = t_iter_finish - t_iter_start
+                            print(
+                                "イテレーション {} || Loss: {:.4f} || 10iter: {:.4f} sec.".format(
+                                    iteration, loss.item(), duration
                                 )
-                                t_iter_start = time.time()
+                            )
+                            t_iter_start = time.time()
 
-                            epoch_train_loss += loss.item()
-                            iteration += 1
+                        epoch_train_loss += loss.item()
+                        iteration += 1
 
-                        # 検証時
-                        else:
-                            epoch_val_loss += loss.item()
+                    # 検証時
+                    else:
+                        epoch_val_loss += loss.item()
 
         # epochのphaseごとのloss （Issue158での誤植修正）
         t_epoch_finish = time.time()
@@ -259,14 +258,21 @@ def train_model(net, dataloaders_dict, criterion, optimizer, num_epochs):
         epoch_val_loss = 0.0  # epochの損失和
 
         # ネットワークを保存する
-        if (epoch + 1) % 10 == 0:
+        if epoch % 10 == 0:
             torch.save(net.state_dict(), "weights/ssd300_" + str(epoch + 1) + ".pth")
-
-    except IndexError as e:
-        print(e)
-        loss_l, loss_c = criterion(outputs, targets)
-        return locals()
 
 
 def test_main():
+    main()
+
+
+if __name__ == "__main__":
+    import logging
+
+    logging.basicConfig(level=loggin.DEBUG)
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+
+    logger.info("Start training.")
+
     main()
