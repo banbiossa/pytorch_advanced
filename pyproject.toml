@@ -17,10 +17,12 @@ tqdm = "*"
 python-dotenv="*"
 opencv-python = "*"
 pandas = "*"
+pyserde = "*"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"
 black = "*"
+isort = "*"
 blackcellmagic = "*"
 
 [build-system]

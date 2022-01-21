@@ -7,12 +7,14 @@ https://github.com/amdegroot/ssd.pytorch/blob/master/utils/augmentations.py
 data augumentation BBoxごと変形させる
 """
 from __future__ import annotations
-import torch
-from torchvision import transforms
+
+import types
+
 import cv2
 import numpy as np
-import types
+import torch
 from numpy import random
+from torchvision import transforms
 
 
 def intersect(box_a, box_b):

@@ -1,33 +1,36 @@
 """Main code for sdd"""
 from __future__ import annotations
-from pathlib import Path
+
+import logging
 import random
 import xml.etree.ElementTree as ET
-import logging
+from itertools import product
+from math import sqrt
+from pathlib import Path
+from typing import Callable
 
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import torch.utils.data as data
 import torch.nn as nn
-import torch.nn.init as init
 import torch.nn.functional as F
+import torch.nn.init as init
+import torch.utils.data as data
+from torch import Tensor
 from torch.autograd import Function
-from itertools import product
-from math import sqrt
 
 from .data_augumentation import (
     Compose,
     ConvertFromInts,
-    ToAbsoluteCoords,
-    PhotometricDistort,
     Expand,
-    RandomSampleCrop,
+    PhotometricDistort,
     RandomMirror,
-    ToPercentCoords,
+    RandomSampleCrop,
     Resize,
     SubtractMeans,
+    ToAbsoluteCoords,
+    ToPercentCoords,
 )
 from .match import match
 
@@ -38,7 +41,7 @@ np.random.seed(1234)
 random.seed(1234)
 
 
-def make_data_path_list(rootpath: Path):
+def make_data_path_list(rootpath: Path) -> list[list[Path]]:
     """Make a list of data paths
 
     Args:
@@ -50,17 +53,17 @@ def make_data_path_list(rootpath: Path):
         - val_anno_list
     """
     # make path templates
-    def img_path(x):
+    def img_path(x) -> Path:
         return rootpath / "JPEGImages" / f"{x}.jpg"
 
-    def anno_path(x):
+    def anno_path(x) -> Path:
         return rootpath / "Annotations" / f"{x}.xml"
 
     # train/test file ids
     train_id_names = rootpath / "ImageSets" / "Main" / "train.txt"
     val_id_names = rootpath / "ImageSets" / "Main" / "val.txt"
 
-    def get_lists(id_names, get_path):
+    def get_lists(id_names, get_path) -> list[Path]:
         return [get_path(line.strip()) for line in open(id_names)]
 
     return [
@@ -176,7 +179,14 @@ class DataTransform:
 
 
 class VOCDataset(data.Dataset):
-    def __init__(self, img_list, anno_list, phase, transform, transform_anno):
+    def __init__(
+        self,
+        img_list: list[Path],
+        anno_list: list[Path],
+        phase: str,
+        transform: Callable,
+        transform_anno: Callable,
+    ):
         """VOC dataset を作成するクラス。
 
         Args:
@@ -195,7 +205,7 @@ class VOCDataset(data.Dataset):
     def __len__(self):
         return len(self.img_list)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index) -> tuple[Tensor, np.ndarray]:
         """前処理をした画像のテンソル形式のデータとアノテーションを返す"""
         im, gt, h, w = self.pull_item(index)
         return im, gt

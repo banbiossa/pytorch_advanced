@@ -4,16 +4,15 @@ from __future__ import annotations
 For chapter1, part3 of the book.
 Make the code here and import as a library
 """
+import logging
 from pathlib import Path
-from PIL import Image
-from tqdm import tqdm_notebook as tqdm
 
 import torch
 import torch.utils.data as data
-from torchvision import transforms
 from dotenv import find_dotenv
-
-import logging
+from PIL import Image
+from torchvision import transforms
+from tqdm import tqdm_notebook as tqdm
 
 logger = logging.getLogger(__name__)
 
