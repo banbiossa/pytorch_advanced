@@ -68,14 +68,12 @@ def make_data_path_list(rootpath: Path) -> list[list[Path]]:
         return [get_path(line.strip()) for line in open(id_names)]
 
     return [
-        get_lists(ids, func)
-        for ids in (train_id_names, val_id_names)
+        get_lists(ids, func) for ids in (train_id_names, val_id_names)
         for func in (img_path, anno_path)
     ]
 
 
 class AnnoXML2List:
-
     def __init__(self, classes: list[str]):
         """get xml annotation data, normalize and to list
 
@@ -133,7 +131,6 @@ def make_order(first, second):
 
 
 class DataTransform:
-
     def __init__(self, input_size, color_mean):
         """画像とアノテーションの前処理クラス。訓練と推論で異なる動作をする。
         画像のサイズを300*300 にする。
@@ -145,23 +142,27 @@ class DataTransform:
         """
         self.data_transform = {
             "train":
-                Compose([
-                    ConvertFromInts(),
-                    ToAbsoluteCoords(),
-                    PhotometricDistort(),
-                    Expand(color_mean),
-                    RandomSampleCrop(),
-                    RandomMirror(),
-                    ToPercentCoords(),
-                    Resize(input_size),
-                    SubtractMeans(color_mean),
-                ]),
+                Compose(
+                    [
+                        ConvertFromInts(),
+                        ToAbsoluteCoords(),
+                        PhotometricDistort(),
+                        Expand(color_mean),
+                        RandomSampleCrop(),
+                        RandomMirror(),
+                        ToPercentCoords(),
+                        Resize(input_size),
+                        SubtractMeans(color_mean),
+                    ]
+                ),
             "val":
-                Compose([
-                    ConvertFromInts(),
-                    Resize(input_size),
-                    SubtractMeans(color_mean),
-                ]),
+                Compose(
+                    [
+                        ConvertFromInts(),
+                        Resize(input_size),
+                        SubtractMeans(color_mean),
+                    ]
+                ),
         }
 
     def __call__(self, img, phase, boxes, labels):
@@ -180,7 +181,6 @@ class DataTransform:
 
 
 class VOCDataset(data.Dataset):
-
     def __init__(
         self,
         img_list: list[Path],
@@ -224,8 +224,9 @@ class VOCDataset(data.Dataset):
         anno_list = self.transform_anno(anno_file_path, width, height)
 
         # 3. 前処理を実施
-        img, boxes, labels = self.transform(img, self.phase, anno_list[:, :4],
-                                            anno_list[:, 4])
+        img, boxes, labels = self.transform(
+            img, self.phase, anno_list[:, :4], anno_list[:, 4]
+        )
 
         # 順序を２段階で変更
         # 色チャネルがBGRになっているので、RGBに変更
@@ -398,7 +399,6 @@ def to_print(i):
 
 
 class L2Norm(nn.Module):
-
     def __init__(self, input_channels=512, scale=20):
         """convC4_3からの出力をscale=20のL2Norm で正規化する層
 
@@ -437,7 +437,6 @@ class L2Norm(nn.Module):
 
 
 class DBox:
-
     def __init__(self, cfg: dict):
         """default boxes
 
@@ -496,7 +495,6 @@ class DBox:
 
 
 class SSD(nn.Module):
-
     def __init__(self, phase: str, cfg: dict):
         """network
 
@@ -688,7 +686,6 @@ def nm_suppression(boxes, scores, overlap=0.45, top_k=200):
 
 
 class Detect(Function):
-
     def __init__(self, conf_thresh=0.01, top_k=200, nms_thresh=0.45):
         """Detection, forward
 
@@ -766,12 +763,12 @@ class Detect(Function):
 
                 # outputにnmsを抜けた結果を格納
                 output[i, cl, :count] = torch.cat(
-                    (scores[ids[:count]].unsqueeze(1), boxes[ids[:count]]), 1)
+                    (scores[ids[:count]].unsqueeze(1), boxes[ids[:count]]), 1
+                )
         return output  # torch.Size([1, 21, 200, 5])
 
 
 class MultiBoxLoss(nn.Module):
-
     def __init__(self, jaccard_thresh=.5, neg_pos=3, device="cpu") -> None:
         super().__init__()
 
