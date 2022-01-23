@@ -68,7 +68,8 @@ def make_data_path_list(rootpath: Path) -> list[list[Path]]:
         return [get_path(line.strip()) for line in open(id_names)]
 
     return [
-        get_lists(ids, func) for ids in (train_id_names, val_id_names)
+        get_lists(ids, func)
+        for ids in (train_id_names, val_id_names)
         for func in (img_path, anno_path)
     ]
 
@@ -144,23 +145,23 @@ class DataTransform:
         """
         self.data_transform = {
             "train":
-            Compose([
-                ConvertFromInts(),
-                ToAbsoluteCoords(),
-                PhotometricDistort(),
-                Expand(color_mean),
-                RandomSampleCrop(),
-                RandomMirror(),
-                ToPercentCoords(),
-                Resize(input_size),
-                SubtractMeans(color_mean),
-            ]),
+                Compose([
+                    ConvertFromInts(),
+                    ToAbsoluteCoords(),
+                    PhotometricDistort(),
+                    Expand(color_mean),
+                    RandomSampleCrop(),
+                    RandomMirror(),
+                    ToPercentCoords(),
+                    Resize(input_size),
+                    SubtractMeans(color_mean),
+                ]),
             "val":
-            Compose([
-                ConvertFromInts(),
-                Resize(input_size),
-                SubtractMeans(color_mean),
-            ]),
+                Compose([
+                    ConvertFromInts(),
+                    Resize(input_size),
+                    SubtractMeans(color_mean),
+                ]),
         }
 
     def __call__(self, img, phase, boxes, labels):
@@ -308,11 +309,7 @@ def make_vgg():
     pool5 = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
     conv6 = nn.Conv2d(512, 1024, kernel_size=3, padding=6, dilation=6)
     conv7 = nn.Conv2d(1024, 1024, kernel_size=1)
-    layers += [
-        pool5, conv6,
-        nn.ReLU(inplace=True), conv7,
-        nn.ReLU(inplace=True)
-    ]
+    layers += [pool5, conv6, nn.ReLU(inplace=True), conv7, nn.ReLU(inplace=True)]
     return nn.ModuleList(layers)
 
 
@@ -352,69 +349,39 @@ def make_loc_conf(num_classes=21, bbox_aspect_num=None):
     conf_layers = []
 
     # VGG-22, conv4_3 (source1) の conv
-    loc_layers += [
-        nn.Conv2d(512, bbox_aspect_num[0] * 4, kernel_size=3, padding=1)
-    ]
+    loc_layers += [nn.Conv2d(512, bbox_aspect_num[0] * 4, kernel_size=3, padding=1)]
     conf_layers += [
-        nn.Conv2d(512,
-                  bbox_aspect_num[0] * num_classes,
-                  kernel_size=3,
-                  padding=1)
+        nn.Conv2d(512, bbox_aspect_num[0] * num_classes, kernel_size=3, padding=1)
     ]
 
     # vgg の最終層 (source2)に対する畳み込み層
-    loc_layers += [
-        nn.Conv2d(1024, bbox_aspect_num[1] * 4, kernel_size=3, padding=1)
-    ]
+    loc_layers += [nn.Conv2d(1024, bbox_aspect_num[1] * 4, kernel_size=3, padding=1)]
     conf_layers += [
-        nn.Conv2d(1024,
-                  bbox_aspect_num[1] * num_classes,
-                  kernel_size=3,
-                  padding=1)
+        nn.Conv2d(1024, bbox_aspect_num[1] * num_classes, kernel_size=3, padding=1)
     ]
 
     # extra の (source3)に対する畳み込み層
-    loc_layers += [
-        nn.Conv2d(512, bbox_aspect_num[2] * 4, kernel_size=3, padding=1)
-    ]
+    loc_layers += [nn.Conv2d(512, bbox_aspect_num[2] * 4, kernel_size=3, padding=1)]
     conf_layers += [
-        nn.Conv2d(512,
-                  bbox_aspect_num[2] * num_classes,
-                  kernel_size=3,
-                  padding=1)
+        nn.Conv2d(512, bbox_aspect_num[2] * num_classes, kernel_size=3, padding=1)
     ]
 
     # extra の (source4)に対する畳み込み層
-    loc_layers += [
-        nn.Conv2d(256, bbox_aspect_num[3] * 4, kernel_size=3, padding=1)
-    ]
+    loc_layers += [nn.Conv2d(256, bbox_aspect_num[3] * 4, kernel_size=3, padding=1)]
     conf_layers += [
-        nn.Conv2d(256,
-                  bbox_aspect_num[3] * num_classes,
-                  kernel_size=3,
-                  padding=1)
+        nn.Conv2d(256, bbox_aspect_num[3] * num_classes, kernel_size=3, padding=1)
     ]
 
     # extra の (source5)に対する畳み込み層
-    loc_layers += [
-        nn.Conv2d(256, bbox_aspect_num[4] * 4, kernel_size=3, padding=1)
-    ]
+    loc_layers += [nn.Conv2d(256, bbox_aspect_num[4] * 4, kernel_size=3, padding=1)]
     conf_layers += [
-        nn.Conv2d(256,
-                  bbox_aspect_num[4] * num_classes,
-                  kernel_size=3,
-                  padding=1)
+        nn.Conv2d(256, bbox_aspect_num[4] * num_classes, kernel_size=3, padding=1)
     ]
 
     # extra の (source6)に対する畳み込み層
-    loc_layers += [
-        nn.Conv2d(256, bbox_aspect_num[5] * 4, kernel_size=3, padding=1)
-    ]
+    loc_layers += [nn.Conv2d(256, bbox_aspect_num[5] * 4, kernel_size=3, padding=1)]
     conf_layers += [
-        nn.Conv2d(256,
-                  bbox_aspect_num[5] * num_classes,
-                  kernel_size=3,
-                  padding=1)
+        nn.Conv2d(256, bbox_aspect_num[5] * num_classes, kernel_size=3, padding=1)
     ]
 
     return nn.ModuleList(loc_layers), nn.ModuleList(conf_layers)
@@ -464,8 +431,7 @@ class L2Norm(nn.Module):
 
         # mul the weights: torch.Size([512])
         # result is torch.Size([batch_num, 512, 38, 38])
-        weights = self.weight.unsqueeze(0).unisqueeze(2).unsqueeze(
-            3).expand_as(x)
+        weights = self.weight.unsqueeze(0).unisqueeze(2).unsqueeze(3).expand_as(x)
         out = weights * x
         return out
 
@@ -487,8 +453,7 @@ class DBox:
         self.feature_maps = cfg["feature_maps"]
         self.num_priors = len(self.feature_maps)
         self.steps = cfg["steps"]  # [8, 16, ...] DBox pixel size
-        self.min_sizes = cfg[
-            "min_sizes"]  # [30, 60, ...] small square pixel size
+        self.min_sizes = cfg["min_sizes"]  # [30, 60, ...] small square pixel size
         self.max_sizes = cfg["max_sizes"]  # [60, 111, ...]
         self.aspect_ratios = cfg["aspect_ratios"]
 
@@ -550,8 +515,7 @@ class SSD(nn.Module):
         self.vgg = make_vgg()
         self.extras = make_extras()
         self.L2Norm = L2Norm()
-        self.loc, self.conf = make_loc_conf(self.num_classes,
-                                            cfg["bbox_aspect_num"])
+        self.loc, self.conf = make_loc_conf(self.num_classes, cfg["bbox_aspect_num"])
 
         # dbox
         dbox = DBox(cfg)
@@ -797,8 +761,7 @@ class Detect(Function):
                 # view で（閾値を超えたbbox数, 4) サイズに変形し直す
 
                 # 3. non-maximum suppression を実施
-                ids, count = nm_suppression(boxes, scores, self.nms_thresh,
-                                            self.top_k)
+                ids, count = nm_suppression(boxes, scores, self.nms_thresh, self.top_k)
                 # ids: confの降順にnms を通過した index
 
                 # outputにnmsを抜けた結果を格納
