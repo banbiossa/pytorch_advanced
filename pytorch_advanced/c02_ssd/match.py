@@ -23,13 +23,11 @@ def point_form(boxes: Tensor) -> Tensor:
 
     Returns: boxes: tensor, converted xmin, ymin, xmax, ymax form of boxes
     """
-    return torch.cat(
-        (
-            boxes[:, :2] - boxes[:, 2:] / 2,  # xmin, ymin
-            boxes[:, :2] + boxes[:, 2:] / 2,
-            1,
-        )
-    )
+    return torch.cat((
+        boxes[:, :2] - boxes[:, 2:] / 2,  # xmin, ymin
+        boxes[:, :2] + boxes[:, 2:] / 2,
+        1,
+    ))
 
 
 def center_size(boxes: Tensor) -> Tensor:
@@ -42,13 +40,11 @@ def center_size(boxes: Tensor) -> Tensor:
     Returns:
 
     """
-    return torch.cat(
-        (
-            boxes[:, :2] + boxes[:, 2:] / 2,  # xmin, ymin
-            boxes[:, :2] - boxes[:, 2:] / 2,
-            1,
-        )
-    )
+    return torch.cat((
+        boxes[:, :2] + boxes[:, 2:] / 2,  # xmin, ymin
+        boxes[:, :2] - boxes[:, 2:] / 2,
+        1,
+    ))
 
 
 def intersect(box_a, box_b) -> Tensor:
@@ -87,17 +83,16 @@ def jaccard(box_a, box_b) -> Tensor:
 
     """
     inter = intersect(box_a, box_b)
-    area_a = (box_a[:, 2] - box_a[:, 0]) * (box_a[:, 3] - box_a[:, 1]).unsqueeze(
-        1
-    ).expand_as(inter)
-    area_b = (box_b[:, 2] - box_b[:, 0]) * (box_b[:, 3] - box_b[:, 1]).unsqueeze(
-        1
-    ).expand_as(inter)
+    area_a = (box_a[:, 2] - box_a[:, 0]) * (
+        box_a[:, 3] - box_a[:, 1]).unsqueeze(1).expand_as(inter)
+    area_b = (box_b[:, 2] - box_b[:, 0]) * (
+        box_b[:, 3] - box_b[:, 1]).unsqueeze(1).expand_as(inter)
     union = area_a + area_b - inter
     return inter / union
 
 
-def match(threshold: float, truths, priors, variances, labels, loc_t, conf_t, idx: int):
+def match(threshold: float, truths, priors, variances, labels, loc_t, conf_t,
+          idx: int):
     """Match each prior box with the ground truth box of the highest jaccard
     overlap, encode the bounding boxes, then return the matched indices
     corresponding to both confidence and location preds

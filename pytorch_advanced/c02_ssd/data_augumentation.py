@@ -40,13 +40,15 @@ def jaccard_numpy(box_a, box_b):
         jaccard overlap, Shape: [box_a.shape[0], box_a.shape[1]]
     """
     inter = intersect(box_a, box_b)
-    area_a = (box_a[:, 2] - box_a[:, 0]) * (box_a[:, 3] - box_a[:, 1])  # [A, B]
+    area_a = (box_a[:, 2] - box_a[:, 0]) * (box_a[:, 3] - box_a[:, 1]
+                                            )  # [A, B]
     area_b = (box_b[2] - box_b[0]) * (box_b[3] - box_b[1])  # [A, B]
     union = area_a + area_b - inter
     return inter / union  # [A, B]
 
 
 class Compose:
+
     def __init__(self, transforms_list: list[transforms]):
         """Composes several augumentations together
 
@@ -68,6 +70,7 @@ class Compose:
 
 
 class Lambda:
+
     def __init__(self, lambd):
         """Applies a lambda as a transform
 
@@ -82,11 +85,13 @@ class Lambda:
 
 
 class ConvertFromInts:
+
     def __call__(self, img, boxes=None, labels=None):
         return img.astype(np.float32), boxes, labels
 
 
 class SubtractMeans:
+
     def __init__(self, mean):
         self.mean = np.array(mean, dtype=np.float32)
 
@@ -97,6 +102,7 @@ class SubtractMeans:
 
 
 class ToAbsoluteCoords:
+
     def __call__(self, image, boxes=None, labels=None):
         height, width, channels = image.shape
         boxes[:, 0] *= width
@@ -108,6 +114,7 @@ class ToAbsoluteCoords:
 
 
 class ToPercentCoords:
+
     def __call__(self, image, boxes=None, labels=None):
         height, width, channels = image.shape
 
@@ -120,6 +127,7 @@ class ToPercentCoords:
 
 
 class Resize:
+
     def __init__(self, size=300):
         self.size = size
 
@@ -129,6 +137,7 @@ class Resize:
 
 
 class RandomSaturation:
+
     def __init__(self, lower=0.5, upper=1.5):
         self.lower = lower
         self.upper = upper
@@ -142,6 +151,7 @@ class RandomSaturation:
 
 
 class RandomHue:
+
     def __init__(self, delta=18.0):
         assert 0.0 <= delta <= 360.0
         self.delta = delta
@@ -155,8 +165,10 @@ class RandomHue:
 
 
 class RandomLightingNoise:
+
     def __init__(self):
-        self.perms = ((0, 1, 2), (0, 2, 1), (1, 0, 2), (1, 2, 0), (2, 0, 1), (2, 1, 0))
+        self.perms = ((0, 1, 2), (0, 2, 1), (1, 0, 2), (1, 2, 0), (2, 0, 1),
+                      (2, 1, 0))
 
     def __call__(self, image, boxes=None, labels=None):
         if random.randint(2):
@@ -167,6 +179,7 @@ class RandomLightingNoise:
 
 
 class ConvertColor:
+
     def __init__(self, current="BGR", transform="HSV"):
         self.transform = transform
         self.current = current
@@ -182,6 +195,7 @@ class ConvertColor:
 
 
 class RandomContrast:
+
     def __init__(self, lower=0.5, upper=1.5):
         self.lower = lower
         self.upper = upper
@@ -197,6 +211,7 @@ class RandomContrast:
 
 
 class RandomBrightness:
+
     def __init__(self, delta=32):
         assert delta >= 0.0
         assert delta <= 255.0
@@ -210,6 +225,7 @@ class RandomBrightness:
 
 
 class ToCV2Image:
+
     def __call__(self, tensor, boxes=None, labels=None):
         return (
             tensor.cpu().numpy().astype(np.float32).tranpose((1, 2, 0)),
@@ -219,6 +235,7 @@ class ToCV2Image:
 
 
 class ToTensor:
+
     def __call__(self, cvimage, boxes=None, labels=None):
         return (
             torch.from_numpy(cvimage.astype(np.float32)).permute(2, 0, 1),
@@ -228,6 +245,7 @@ class ToTensor:
 
 
 class Expand:
+
     def __init__(self, mean):
         self.mean = mean
 
@@ -241,12 +259,11 @@ class Expand:
         top = random.uniform(0, height * ratio - height)
 
         expand_image = np.zeros(
-            (int(height * ratio), int(width * ratio), depth), dtype=image.dtype
-        )
+            (int(height * ratio), int(width * ratio), depth),
+            dtype=image.dtype)
         expand_image[:, :, :] = self.mean
-        expand_image[
-            int(top) : int(top + height), int(left) : int(left + width)
-        ] = image
+        expand_image[int(top):int(top + height),
+                     int(left):int(left + width)] = image
         image = expand_image
 
         boxes = boxes.copy()
@@ -257,6 +274,7 @@ class Expand:
 
 
 class RandomMirror:
+
     def __call__(self, image, boxes, labels):
         _, width, _ = image.shape
         if random.randint(2):
@@ -267,6 +285,7 @@ class RandomMirror:
 
 
 class SwapChannels:
+
     def __init__(self, swaps):
         """Transforms a tensorized image by swapping the channels in the order
         specified in the swaps tuple
@@ -283,6 +302,7 @@ class SwapChannels:
 
 
 class PhotometricDistort:
+
     def __init__(self):
         self.pd = [
             RandomContrast(),
@@ -307,6 +327,7 @@ class PhotometricDistort:
 
 
 class RandomSampleCrop:
+
     def __init__(self):
         self.sample_options = (
             None,  # using entire image
@@ -347,7 +368,11 @@ class RandomSampleCrop:
                 top = random.uniform(height - h)
 
                 # convert to integer rect
-                rect = np.array([int(left), int(top), int(left + w), int(top + h)])
+                rect = np.array(
+                    [int(left),
+                     int(top),
+                     int(left + w),
+                     int(top + h)])
 
                 # calculate IoU (jaccard overlap) b/t the cropped and gt boxes
                 overlap = jaccard_numpy(boxes, rect)
@@ -357,7 +382,8 @@ class RandomSampleCrop:
                     continue
 
                 # cut the crop from the image
-                current_image = current_image[rect[1] : rect[3], rect[0] : rect[2], :]
+                current_image = current_image[rect[1]:rect[3],
+                                              rect[0]:rect[2], :]
 
                 # keep the overlap with gt box IF center in sampled patch
                 centers = (boxes[:, :2] + boxes[:, 2:]) / 2.0
@@ -382,7 +408,8 @@ class RandomSampleCrop:
                 current_labels = labels[mask]
 
                 # should we use the box left and top corner of the crop's
-                current_boxes[:, :2] = np.maximum(current_boxes[:, :2], rect[:2])
+                current_boxes[:, :2] = np.maximum(current_boxes[:, :2],
+                                                  rect[:2])
 
                 # adjust to crop (by subtracting crop's left, too)
                 current_boxes[:, :2] -= rect[:2]
@@ -391,5 +418,6 @@ class RandomSampleCrop:
 
 
 class Temp:
+
     def __call__(self, image, boxes=None, labels=None):
         return image, boxes, labels

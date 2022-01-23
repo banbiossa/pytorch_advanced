@@ -43,19 +43,18 @@ def make_datapath_list_zumen(
     train_ids = train_id_names.read_text().split("\n")
     val_ids = val_id_names.read_text().split("\n")
     train_img_list, train_anno_list = image_and_annotation_list(
-        train_ids, img_dir, annot_dir
-    )
-    val_img_list, val_anno_list = image_and_annotation_list(val_ids, img_dir, annot_dir)
+        train_ids, img_dir, annot_dir)
+    val_img_list, val_anno_list = image_and_annotation_list(
+        val_ids, img_dir, annot_dir)
 
     return train_img_list, train_anno_list, val_img_list, val_anno_list
 
 
 def image_and_annotation_list(
-    file_ids: list[str], image_dir: Path, annot_dir: Path
-) -> tuple[list[Path], list[Path]]:
-    return [image_dir / f"{f}.png" for f in file_ids], [
-        annot_dir / f"{f}.json" for f in file_ids
-    ]
+        file_ids: list[str], image_dir: Path,
+        annot_dir: Path) -> tuple[list[Path], list[Path]]:
+    return [image_dir / f"{f}.png"
+            for f in file_ids], [annot_dir / f"{f}.json" for f in file_ids]
 
 
 # AnocciデータをPascal VOC形式に変換する
@@ -157,9 +156,10 @@ def anocci_from_json(json_path: Path) -> Anocci:
     return from_json(Anocci, json_path.read_text())
 
 
-def voc_from_anocci_json(
-    json_path: Path, normalize=True, *args, **kwargs
-) -> np.ndarray:
+def voc_from_anocci_json(json_path: Path,
+                         normalize=True,
+                         *args,
+                         **kwargs) -> np.ndarray:
     """allow kwargs"""
     anocci = anocci_from_json(json_path)
     object_view_label = 0
@@ -175,8 +175,7 @@ def voc_from_anocci_json(
                     object_view_label,
                 ],
                 anocci.object_views,
-            )
-        )
+            ))
     else:
         object_views = list(
             map(
@@ -188,7 +187,12 @@ def voc_from_anocci_json(
                     object_view_label,
                 ],
                 anocci.object_views,
-            )
-        )
+            ))
 
     return np.array(object_views, dtype=np.float32)
+
+
+def test_something():
+    print("hello")
+    print('me')
+    print('me')

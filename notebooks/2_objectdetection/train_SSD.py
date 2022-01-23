@@ -269,7 +269,7 @@ def test_main():
 if __name__ == "__main__":
     import logging
 
-    logging.basicConfig(level=loggin.DEBUG)
+    logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
 

@@ -52,6 +52,7 @@ def make_data_path_list(rootpath: Path) -> list[list[Path]]:
         - val_img_list
         - val_anno_list
     """
+
     # make path templates
     def img_path(x) -> Path:
         return rootpath / "JPEGImages" / f"{x}.jpg"
@@ -67,13 +68,13 @@ def make_data_path_list(rootpath: Path) -> list[list[Path]]:
         return [get_path(line.strip()) for line in open(id_names)]
 
     return [
-        get_lists(ids, func)
-        for ids in (train_id_names, val_id_names)
+        get_lists(ids, func) for ids in (train_id_names, val_id_names)
         for func in (img_path, anno_path)
     ]
 
 
 class AnnoXML2List:
+
     def __init__(self, classes: list[str]):
         """get xml annotation data, normalize and to list
 
@@ -131,6 +132,7 @@ def make_order(first, second):
 
 
 class DataTransform:
+
     def __init__(self, input_size, color_mean):
         """画像とアノテーションの前処理クラス。訓練と推論で異なる動作をする。
         画像のサイズを300*300 にする。
@@ -141,26 +143,24 @@ class DataTransform:
             color_mean: (B, G, R) 各色チャネルの平均値
         """
         self.data_transform = {
-            "train": Compose(
-                [
-                    ConvertFromInts(),
-                    ToAbsoluteCoords(),
-                    PhotometricDistort(),
-                    Expand(color_mean),
-                    RandomSampleCrop(),
-                    RandomMirror(),
-                    ToPercentCoords(),
-                    Resize(input_size),
-                    SubtractMeans(color_mean),
-                ]
-            ),
-            "val": Compose(
-                [
-                    ConvertFromInts(),
-                    Resize(input_size),
-                    SubtractMeans(color_mean),
-                ]
-            ),
+            "train":
+            Compose([
+                ConvertFromInts(),
+                ToAbsoluteCoords(),
+                PhotometricDistort(),
+                Expand(color_mean),
+                RandomSampleCrop(),
+                RandomMirror(),
+                ToPercentCoords(),
+                Resize(input_size),
+                SubtractMeans(color_mean),
+            ]),
+            "val":
+            Compose([
+                ConvertFromInts(),
+                Resize(input_size),
+                SubtractMeans(color_mean),
+            ]),
         }
 
     def __call__(self, img, phase, boxes, labels):
@@ -179,6 +179,7 @@ class DataTransform:
 
 
 class VOCDataset(data.Dataset):
+
     def __init__(
         self,
         img_list: list[Path],
@@ -222,9 +223,8 @@ class VOCDataset(data.Dataset):
         anno_list = self.transform_anno(anno_file_path, width, height)
 
         # 3. 前処理を実施
-        img, boxes, labels = self.transform(
-            img, self.phase, anno_list[:, :4], anno_list[:, 4]
-        )
+        img, boxes, labels = self.transform(img, self.phase, anno_list[:, :4],
+                                            anno_list[:, 4])
 
         # 順序を２段階で変更
         # 色チャネルがBGRになっているので、RGBに変更
@@ -308,7 +308,11 @@ def make_vgg():
     pool5 = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
     conv6 = nn.Conv2d(512, 1024, kernel_size=3, padding=6, dilation=6)
     conv7 = nn.Conv2d(1024, 1024, kernel_size=1)
-    layers += [pool5, conv6, nn.ReLU(inplace=True), conv7, nn.ReLU(inplace=True)]
+    layers += [
+        pool5, conv6,
+        nn.ReLU(inplace=True), conv7,
+        nn.ReLU(inplace=True)
+    ]
     return nn.ModuleList(layers)
 
 
@@ -348,39 +352,69 @@ def make_loc_conf(num_classes=21, bbox_aspect_num=None):
     conf_layers = []
 
     # VGG-22, conv4_3 (source1) の conv
-    loc_layers += [nn.Conv2d(512, bbox_aspect_num[0] * 4, kernel_size=3, padding=1)]
+    loc_layers += [
+        nn.Conv2d(512, bbox_aspect_num[0] * 4, kernel_size=3, padding=1)
+    ]
     conf_layers += [
-        nn.Conv2d(512, bbox_aspect_num[0] * num_classes, kernel_size=3, padding=1)
+        nn.Conv2d(512,
+                  bbox_aspect_num[0] * num_classes,
+                  kernel_size=3,
+                  padding=1)
     ]
 
     # vgg の最終層 (source2)に対する畳み込み層
-    loc_layers += [nn.Conv2d(1024, bbox_aspect_num[1] * 4, kernel_size=3, padding=1)]
+    loc_layers += [
+        nn.Conv2d(1024, bbox_aspect_num[1] * 4, kernel_size=3, padding=1)
+    ]
     conf_layers += [
-        nn.Conv2d(1024, bbox_aspect_num[1] * num_classes, kernel_size=3, padding=1)
+        nn.Conv2d(1024,
+                  bbox_aspect_num[1] * num_classes,
+                  kernel_size=3,
+                  padding=1)
     ]
 
     # extra の (source3)に対する畳み込み層
-    loc_layers += [nn.Conv2d(512, bbox_aspect_num[2] * 4, kernel_size=3, padding=1)]
+    loc_layers += [
+        nn.Conv2d(512, bbox_aspect_num[2] * 4, kernel_size=3, padding=1)
+    ]
     conf_layers += [
-        nn.Conv2d(512, bbox_aspect_num[2] * num_classes, kernel_size=3, padding=1)
+        nn.Conv2d(512,
+                  bbox_aspect_num[2] * num_classes,
+                  kernel_size=3,
+                  padding=1)
     ]
 
     # extra の (source4)に対する畳み込み層
-    loc_layers += [nn.Conv2d(256, bbox_aspect_num[3] * 4, kernel_size=3, padding=1)]
+    loc_layers += [
+        nn.Conv2d(256, bbox_aspect_num[3] * 4, kernel_size=3, padding=1)
+    ]
     conf_layers += [
-        nn.Conv2d(256, bbox_aspect_num[3] * num_classes, kernel_size=3, padding=1)
+        nn.Conv2d(256,
+                  bbox_aspect_num[3] * num_classes,
+                  kernel_size=3,
+                  padding=1)
     ]
 
     # extra の (source5)に対する畳み込み層
-    loc_layers += [nn.Conv2d(256, bbox_aspect_num[4] * 4, kernel_size=3, padding=1)]
+    loc_layers += [
+        nn.Conv2d(256, bbox_aspect_num[4] * 4, kernel_size=3, padding=1)
+    ]
     conf_layers += [
-        nn.Conv2d(256, bbox_aspect_num[4] * num_classes, kernel_size=3, padding=1)
+        nn.Conv2d(256,
+                  bbox_aspect_num[4] * num_classes,
+                  kernel_size=3,
+                  padding=1)
     ]
 
     # extra の (source6)に対する畳み込み層
-    loc_layers += [nn.Conv2d(256, bbox_aspect_num[5] * 4, kernel_size=3, padding=1)]
+    loc_layers += [
+        nn.Conv2d(256, bbox_aspect_num[5] * 4, kernel_size=3, padding=1)
+    ]
     conf_layers += [
-        nn.Conv2d(256, bbox_aspect_num[5] * num_classes, kernel_size=3, padding=1)
+        nn.Conv2d(256,
+                  bbox_aspect_num[5] * num_classes,
+                  kernel_size=3,
+                  padding=1)
     ]
 
     return nn.ModuleList(loc_layers), nn.ModuleList(conf_layers)
@@ -397,6 +431,7 @@ def to_print(i):
 
 
 class L2Norm(nn.Module):
+
     def __init__(self, input_channels=512, scale=20):
         """convC4_3からの出力をscale=20のL2Norm で正規化する層
 
@@ -429,12 +464,14 @@ class L2Norm(nn.Module):
 
         # mul the weights: torch.Size([512])
         # result is torch.Size([batch_num, 512, 38, 38])
-        weights = self.weight.unsqueeze(0).unisqueeze(2).unsqueeze(3).expand_as(x)
+        weights = self.weight.unsqueeze(0).unisqueeze(2).unsqueeze(
+            3).expand_as(x)
         out = weights * x
         return out
 
 
 class DBox:
+
     def __init__(self, cfg: dict):
         """default boxes
 
@@ -450,7 +487,8 @@ class DBox:
         self.feature_maps = cfg["feature_maps"]
         self.num_priors = len(self.feature_maps)
         self.steps = cfg["steps"]  # [8, 16, ...] DBox pixel size
-        self.min_sizes = cfg["min_sizes"]  # [30, 60, ...] small square pixel size
+        self.min_sizes = cfg[
+            "min_sizes"]  # [30, 60, ...] small square pixel size
         self.max_sizes = cfg["max_sizes"]  # [60, 111, ...]
         self.aspect_ratios = cfg["aspect_ratios"]
 
@@ -493,6 +531,7 @@ class DBox:
 
 
 class SSD(nn.Module):
+
     def __init__(self, phase: str, cfg: dict):
         """network
 
@@ -511,7 +550,8 @@ class SSD(nn.Module):
         self.vgg = make_vgg()
         self.extras = make_extras()
         self.L2Norm = L2Norm()
-        self.loc, self.conf = make_loc_conf(self.num_classes, cfg["bbox_aspect_num"])
+        self.loc, self.conf = make_loc_conf(self.num_classes,
+                                            cfg["bbox_aspect_num"])
 
         # dbox
         dbox = DBox(cfg)
@@ -684,6 +724,7 @@ def nm_suppression(boxes, scores, overlap=0.45, top_k=200):
 
 
 class Detect(Function):
+
     def __init__(self, conf_thresh=0.01, top_k=200, nms_thresh=0.45):
         """Detection, forward
 
@@ -756,11 +797,19 @@ class Detect(Function):
                 # view で（閾値を超えたbbox数, 4) サイズに変形し直す
 
                 # 3. non-maximum suppression を実施
-                ids, count = nm_suppression(boxes, scores, self.nms_thresh, self.top_k)
+                ids, count = nm_suppression(boxes, scores, self.nms_thresh,
+                                            self.top_k)
                 # ids: confの降順にnms を通過した index
 
                 # outputにnmsを抜けた結果を格納
                 output[i, cl, :count] = torch.cat(
-                    (scores[ids[:count]].unsqueeze(1), boxes[ids[:count]]), 1
-                )
+                    (scores[ids[:count]].unsqueeze(1), boxes[ids[:count]]), 1)
         return output  # torch.Size([1, 21, 200, 5])
+
+
+class MultiBoxLoss(nn.Module):
+
+    def __init__(self, jaccard_thresh=.5, neg_pos=3, device="cpu") -> None:
+        super().__init__()
+
+        my_stuff = ['ajls', "asdf", "dsafsd"]
