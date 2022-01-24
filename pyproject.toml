@@ -18,6 +18,7 @@ python-dotenv="*"
 opencv-python = "*"
 pandas = "*"
 pyserde = "*"
+torchtyping = "*"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"
