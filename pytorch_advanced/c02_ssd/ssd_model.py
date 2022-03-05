@@ -23,9 +23,18 @@ from torch.autograd import Function
 from torchtyping import TensorType, patch_typeguard
 from typeguard import typechecked
 
-from .data_augumentation import (Compose, ConvertFromInts, Expand, PhotometricDistort,
-                                 RandomMirror, RandomSampleCrop, Resize, SubtractMeans,
-                                 ToAbsoluteCoords, ToPercentCoords)
+from .data_augumentation import (
+    Compose,
+    ConvertFromInts,
+    Expand,
+    PhotometricDistort,
+    RandomMirror,
+    RandomSampleCrop,
+    Resize,
+    SubtractMeans,
+    ToAbsoluteCoords,
+    ToPercentCoords,
+)
 from .match import match
 
 patch_typeguard()  # use before @typechecked
@@ -71,7 +80,6 @@ def make_data_path_list(rootpath: Path) -> list[list[Path]]:
 
 
 class AnnoXML2List:
-
     def __init__(self, classes: list[str]):
         """get xml annotation data, normalize and to list
 
@@ -129,7 +137,6 @@ def make_order(first, second):
 
 
 class DataTransform:
-
     def __init__(self, input_size, color_mean):
         """画像とアノテーションの前処理クラス。訓練と推論で異なる動作をする。
         画像のサイズを300*300 にする。
@@ -140,8 +147,8 @@ class DataTransform:
             color_mean: (B, G, R) 各色チャネルの平均値
         """
         self.data_transform = {
-            "train":
-                Compose([
+            "train": Compose(
+                [
                     ConvertFromInts(),
                     ToAbsoluteCoords(),
                     PhotometricDistort(),
@@ -151,13 +158,15 @@ class DataTransform:
                     ToPercentCoords(),
                     Resize(input_size),
                     SubtractMeans(color_mean),
-                ]),
-            "val":
-                Compose([
+                ]
+            ),
+            "val": Compose(
+                [
                     ConvertFromInts(),
                     Resize(input_size),
                     SubtractMeans(color_mean),
-                ]),
+                ]
+            ),
         }
 
     def __call__(self, img, phase, boxes, labels):
@@ -176,7 +185,6 @@ class DataTransform:
 
 
 class VOCDataset(data.Dataset):
-
     def __init__(
         self,
         img_list: list[Path],
@@ -220,8 +228,9 @@ class VOCDataset(data.Dataset):
         anno_list = self.transform_anno(anno_file_path, width, height)
 
         # 3. 前処理を実施
-        img, boxes, labels = self.transform(img, self.phase, anno_list[:, :4],
-                                            anno_list[:, 4])
+        img, boxes, labels = self.transform(
+            img, self.phase, anno_list[:, :4], anno_list[:, 4]
+        )
 
         # 順序を２段階で変更
         # 色チャネルがBGRになっているので、RGBに変更
@@ -394,7 +403,6 @@ def to_print(i):
 
 
 class L2Norm(nn.Module):
-
     def __init__(self, input_channels=512, scale=20):
         """convC4_3からの出力をscale=20のL2Norm で正規化する層
 
@@ -433,7 +441,6 @@ class L2Norm(nn.Module):
 
 
 class DBox:
-
     def __init__(self, cfg: dict):
         """default boxes
 
@@ -492,7 +499,6 @@ class DBox:
 
 
 class SSD(nn.Module):
-
     def __init__(self, phase: str, cfg: dict):
         """network
 
@@ -684,7 +690,6 @@ def nm_suppression(boxes, scores, overlap=0.45, top_k=200):
 
 
 class Detect(Function):
-
     def __init__(self, conf_thresh=0.01, top_k=200, nms_thresh=0.45):
         """Detection, forward
 
@@ -762,13 +767,13 @@ class Detect(Function):
 
                 # outputにnmsを抜けた結果を格納
                 output[i, cl, :count] = torch.cat(
-                    (scores[ids[:count]].unsqueeze(1), boxes[ids[:count]]), 1)
+                    (scores[ids[:count]].unsqueeze(1), boxes[ids[:count]]), 1
+                )
         return output  # torch.Size([1, 21, 200, 5])
 
 
 class MultiBoxLoss(nn.Module):
-
-    def __init__(self, jaccard_thresh=.5, neg_pos=3, device="cpu") -> None:
+    def __init__(self, jaccard_thresh=0.5, neg_pos=3, device="cpu") -> None:
         """損失関数の計算
 
         Args:
@@ -782,10 +787,15 @@ class MultiBoxLoss(nn.Module):
         self.device = device
 
     # forward 関数の実装
-    def forward(self, predictions: tuple[TensorType["batch", "dbox", 4],
-                                         TensorType["batch", "dbox", "num_classes"],
-                                         TensorType["dbox", 4]],
-                targets: TensorType["batch", -1, 5]) -> tuple[TensorType, TensorType]:
+    def forward(
+        self,
+        predictions: tuple[
+            TensorType["batch", "dbox", 4],
+            TensorType["batch", "dbox", "num_classes"],
+            TensorType["dbox", 4],
+        ],
+        targets: TensorType["batch", -1, 5],
+    ) -> tuple[TensorType, TensorType]:
         """損失関数の計算
 
         Args:
@@ -794,9 +804,9 @@ class MultiBoxLoss(nn.Module):
                 - conf: torch.Size([num_batch, 8732, num_class])
                 - dbox_list: torch.Size([8732, 4])
 
-            targets (Tensor): [num_batch, num_objs, 5] 
+            targets (Tensor): [num_batch, num_objs, 5]
                 5 は正解のアノテーション情報 [xmin, ymin, xmax, ymax, label_ind]
-        
+
         Returns:
         loss_l: Tensor, loc loss
         loss_c: Tensor, conf loss
@@ -842,57 +852,82 @@ class MultiBoxLoss(nn.Module):
             variance = [0.1, 0.2]
 
             # match関数を実行
-            match(self.jaccard_thresh, truths, dbox, variance, labels, loc_t,
-                  conf_t_label, idx)
+            match(
+                self.jaccard_thresh,
+                truths,
+                dbox,
+                variance,
+                labels,
+                loc_t,
+                conf_t_label,
+                idx,
+            )
 
-            # --------------
-            # 位置の損失: loss_l を計算
-            # Smooth L1 Loss. ただし物体を発見したDboxのオフセットのみを計算
-            # --------------
-            # 物体を検出したBBoxを取り出すマスクを作成
-            pos_mask: TensorType["batch", "dbox"] = conf_t_label > 0
+        # --------------
+        # 位置の損失: loss_l を計算
+        # Smooth L1 Loss. ただし物体を発見したDboxのオフセットのみを計算
+        # --------------
+        # 物体を検出したBBoxを取り出すマスクを作成
+        pos_mask: TensorType["batch", "dbox"] = conf_t_label > 0
 
-            # pos_maskをloc_dataのサイズに変形
-            pos_idx: TensorType["batch", "dbox", 4]
-            pos_idx = pos_mask.unsqueeze(pos_mask.dim()).expand_as(loc_data)
+        # pos_maskをloc_dataのサイズに変形
+        pos_idx: TensorType["batch", "dbox", 4]
+        pos_idx = pos_mask.unsqueeze(pos_mask.dim()).expand_as(loc_data)
 
-            # Positive dbox の loc_data と 教師データloc_t を取得
-            loc_p: TensorType["dbox", 4] = loc_data[pos_idx].view(-1, 4)
-            loc_t: TensorType["dbox", 4] = loc_t[pos_idx].view(-1, 4)
+        # Positive dbox の loc_data と 教師データloc_t を取得
+        loc_p: TensorType["dbox", 4] = loc_data[pos_idx].view(-1, 4)
+        loc_t: TensorType["dbox", 4] = loc_t[pos_idx].view(-1, 4)
 
-            # 物体を発見したPositive DBoxのオフセット情報 loc_t の損失を計算
-            loss_l: TensorType = F.smooth_l1_loss(loc_p, loc_t, reduction="sum")
+        # 物体を発見したPositive DBoxのオフセット情報 loc_t の損失を計算
+        loss_l: TensorType = F.smooth_l1_loss(loc_p, loc_t, reduction="sum")
 
-            # --------------
-            # クラス予測の損失 loss_c を計算
-            # 交差エントロピー損失．ただし背景クラスであるDboxが圧倒的に多いので
-            # Hard Negative Miningを行い、物体と背景の比率が1:3になるようにする
-            # そこで背景クラスと予想したもののうち、損失が小さいものはクラスの損失から除く
-            batch_conf: TensorType["batch_dbox",
-                                   "num_classes"] = conf_data.view(-1, num_classes)
+        # --------------
+        # クラス予測の損失 loss_c を計算
+        # 交差エントロピー損失．ただし背景クラスであるDboxが圧倒的に多いので
+        # Hard Negative Miningを行い、物体と背景の比率が1:3になるようにする
+        # そこで背景クラスと予想したもののうち、損失が小さいものはクラスの損失から除く
+        batch_conf: TensorType["batch_dbox", "num_classes"] = conf_data.view(
+            -1, num_classes
+        )
 
-            # クラス予測の損失関数を計算 (reduction='none' にして、和を取らず、次元を潰さない)
-            conf_t_label_view: TensorType["batch_dbox"] = conf_t_label.view(-1)
-            loss_c: TensorType = F.cross_entropy(batch_conf,
-                                                 conf_t_label_view,
-                                                 reduction="none")
+        # クラス予測の損失関数を計算 (reduction='none' にして、和を取らず、次元を潰さない)
+        conf_t_label_view: TensorType["batch_dbox"] = conf_t_label.view(-1)
+        loss_c: TensorType = F.cross_entropy(
+            batch_conf, conf_t_label_view, reduction="none"
+        )
 
-            # --------------
-            # これからNegative Dboxのうち、Hard Negative Miningで抽出するものを求めるマスクを作成
-            # --------------
+        # --------------
+        # これからNegative Dboxのうち、Hard Negative Miningで抽出するものを求めるマスクを作成
+        # --------------
 
-            # 物体発見したPositive Dboxの損失を0に
-            # (注意) 物体はラベルが1以上になっている．ラベル0は背景
+        # 物体発見したPositive Dboxの損失を0に
+        # (注意) 物体はラベルが1以上になっている．ラベル0は背景
 
-            # ミニバッチごとの物体クラス予測の数
-            num_pos: TensorType["batch", "dbox"] = pos_mask.long().sum(1, keepdim=True)
-            loss_c: TensorType["batch", "dbox"] = loss_c.view(num_batch, -1)
-            #  物体を発見した　Dboxの損失を0に
-            loss_c[pos_mask] = 0
+        # ミニバッチごとの物体クラス予測の数
+        num_pos: TensorType["batch", "dbox"] = pos_mask.long().sum(1, keepdim=True)
+        loss_c: TensorType["batch", "dbox"] = loss_c.view(num_batch, -1)
+        #  物体を発見した　Dboxの損失を0に
+        loss_c[pos_mask] = 0
 
-            # Hard Negative Miningを行う
-            # 各Dboxの損失のお大きさは loss_c の順位である idx_rank を求める
-            loss_idx: TensorType["batch", "dbox"]
-            idx_rank: TensorType["batch", "dbox"]
-            _, loss_idx = loss_c.sort(1, descending=True)
-            _, idx_rank = loss_idx.sort(1)
+        # Hard Negative Miningを行う
+        # 各Dboxの損失のお大きさは loss_c の順位である idx_rank を求める
+        loss_idx: TensorType["batch", "dbox"]
+        idx_rank: TensorType["batch", "dbox"]
+        _, loss_idx = loss_c.sort(1, descending=True)
+        _, idx_rank = loss_idx.sort(1)
+
+        num_neg = torch.clamp(num_pos * self.negpos_ratio, max=num_dbox)
+        neg_mask = idx_rank < (num_neg).expand_as(idx_rank)
+
+        pos_idx_mask = pos_mask.unsqueeze(2).expand_as(conf_data)
+        neg_idx_mask = neg_mask.unsqueeze(2).expand_as(conf_data)
+
+        conf_hnm = conf_data[(pos_idx_mask + neg_idx_mask).gt(0)].view(-1, num_classes)
+        conf_t_label_hnm = conf_t_label[(pos_mask + neg_mask).gt(0)]
+        loss_c = F.cross_entropy(conf_hnm, conf_t_label_hnm, reduction="sum")
+
+        N = num_pos.sum()
+        loss_l /= N
+        loss_c /= N
+
+        return loss_l, loss_c
